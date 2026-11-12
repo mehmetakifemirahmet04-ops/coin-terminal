@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coin Terminal — Çoklu Zaman Dilimi Analiz</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#131722">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <!-- Üst Bar -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">◈</span>
+      <span class="brand-name">COIN TERMINAL</span>
+      <span class="brand-sub">Multi-Timeframe Analysis</span>
+    </div>
+    <a href="/news" class="nav-link" target="_blank">📰 Haberler</a>
+    <div class="search-wrap">
+      <input type="text" id="coinSearch" placeholder="Coin ara... (BTC, ETH, SOL...)" autocomplete="off">
+      <div id="coinDropdown" class="coin-dropdown" style="display:none"></div>
+    </div>
+    <div class="market-toggle" id="marketToggle">
+      <button data-market="future" class="active">Vadeli (Futures)</button>
+      <button data-market="spot">Spot</button>
+    </div>
+    <div class="auto-refresh">
+      <label>Otomatik:</label>
+      <select id="autoRefresh">
+        <option value="0">Kapalı</option>
+        <option value="30000">30 sn</option>
+        <option value="60000" selected>1 dk</option>
+        <option value="300000">5 dk</option>
+      </select>
+    </div>
+    <button id="analyzeBtn" class="btn-analyze">ANALİZ ET</button>
+  </header>
+
+  <!-- Yükleme / Hata -->
+  <div id="loading" class="loading" style="display:none">
+    <div class="spinner"></div>
+    <span>5 zaman dilimi analiz ediliyor (15m • 1h • 4h • 1d • 1w)...</span>
+  </div>
+  <div id="error" class="error" style="display:none"></div>
+
+  <!-- Piyasa Tarayıcı (her zaman görünür) -->
+  <section class="panel scanner-panel always-visible">
+    <div class="panel-head">
+      <h2>📡 Piyasa Tarayıcı</h2>
+      <div class="scanner-controls">
+        <span class="panel-hint" id="scanInfo"></span>
+        <button id="scanBtn" class="btn-scan">TARA</button>
+      </div>
+    </div>
+    <div class="scanner-cols" id="scannerCols">
+      <div class="scan-col">
+        <div class="scan-col-head up">🟢 Yükseliş Eğilimli</div>
+        <div class="scan-col-body" id="scanUp"><div class="scan-empty">Taranmadı</div></div>
+      </div>
+      <div class="scan-col">
+        <div class="scan-col-head neut">🟡 Nötr / Kararsız</div>
+        <div class="scan-col-body" id="scanNeutral"><div class="scan-empty">Taranmadı</div></div>
+      </div>
+      <div class="scan-col">
+        <div class="scan-col-head down">🔴 Düşüş Eğilimli</div>
+        <div class="scan-col-body" id="scanDown"><div class="scan-empty">Taranmadı</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Özel İndikatör Tarayıcı (her zaman görünür) -->
+  <section class="panel screener-panel always-visible">
+    <div class="panel-head">
+      <h2>🔎 Özel Tarayıcı</h2>
+      <span class="panel-hint">Kendi indikatör koşulunu belirle — uyan coinler listelenir</span>
+    </div>
+    <div class="screener-controls">
+      <div class="scr-presets">
+        <span class="scr-presets-label">Hazır Stratejiler:</span>
+        <button class="preset-btn" data-preset="oversold">🎯 Aşırı Satım</button>
+        <button class="preset-btn" data-preset="pullback">📈 Trend Pullback</button>
+        <button class="preset-btn" data-preset="breakout">🚀 Momentum Kırılım</button>
+        <button class="preset-btn" data-preset="bearish">📉 Ayı Dönüşü</button>
+        <button class="preset-btn" data-preset="capitulation">⚡ Kapitülasyon</button>
+        <button class="preset-btn" data-preset="custom">✕ Temizle</button>
+      </div>
+      <div id="scrConditions" class="scr-conditions"></div>
+      <div class="scr-row">
+        <button id="scrAddCond" class="btn-add-cond">+ Koşul Ekle</button>
+        <div class="scr-group">
+          <label>Tarama Evreni</label>
+          <select id="scrLimit">
+            <option value="30">İlk 30 coin</option>
+            <option value="60" selected>İlk 60 coin</option>
+            <option value="100">İlk 100 coin</option>
+          </select>
+        </div>
+        <div class="scr-group">
+          <label>Zaman Dilimi</label>
+          <select id="scrTf">
+            <option value="15m">15m</option>
+            <option value="1h">1h</option>
+            <option value="4h" selected>4h</option>
+            <option value="1d">1d</option>
+          </select>
+        </div>
+        <div class="scr-group">
+          <label>Sırala</label>
+          <select id="scrSort">
+            <option value="volume" selected>Hacim</option>
+            <option value="score">Trend Skoru</option>
+            <option value="rsi">RSI</option>
+            <option value="volumeRatio">Hacim Oranı</option>
+            <option value="change24h">24s Değişim</option>
+            <option value="momPct">Momentum</option>
+          </select>
+        </div>
+        <button id="scrBtn" class="btn-scan">TARA</button>
+        <span class="panel-hint" id="scrInfo"></span>
+      </div>
+      <div class="scr-row" style="margin-top:10px">
+        <div class="scr-group">
+          <label>Üst TF Trend Filtresi</label>
+          <select id="scrHtf">
+            <option value="none" selected>Kapalı</option>
+            <option value="4h">4 Saat</option>
+            <option value="1d">1 Gün</option>
+            <option value="1w">1 Hafta</option>
+          </select>
+        </div>
+        <button id="scrSavePreset" class="btn-add-cond">💾 Stratejiyi Kaydet</button>
+        <select id="scrLoadPreset" class="preset-load">
+          <option value="">Kayıtlı strateji yükle...</option>
+        </select>
+        <button id="scrExport" class="btn-add-cond">⬇ CSV İndir</button>
+      </div>
+      <details class="params-details">
+        <summary>⚙️ Gösterge Parametreleri <span class="params-hint">— gösterge periyotlarını kendin ayarla (varsayılan = standart)</span></summary>
+        <div class="params-grid" id="paramsGrid"></div>
+      </details>
+    </div>
+    <div class="table-wrap" id="scrResults" style="display:none">
+      <table class="scr-table">
+        <thead>
+          <tr><th>Coin</th><th>Fiyat</th><th>24s%</th><th>Trend Skoru</th><th>RSI</th><th>MACD</th><th>Stok.</th><th>ADX</th><th>+DI/-DI</th><th>Hacim</th><th>ATR%</th><th>Momentum%</th><th>Bollinger</th><th>EMA-F Sapma</th></tr>
+        </thead>
+        <tbody id="scrBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <main id="result" style="display:none">
+    <!-- Karar Bandı -->
+    <section class="verdict-bar">
+      <div class="verdict-left">
+        <div class="coin-title">
+          <span id="resSymbol" class="coin-symbol">BTC/USDT</span>
+          <span id="resPrice" class="coin-price">$0</span>
+          <span id="liveDot" class="live-dot" title="Canlı veri"></span>
+          <span id="resTf" class="coin-tf"></span>
+        </div>
+        <div class="live-info" id="liveInfo"></div>
+        <div class="vote-chips" id="voteChips"></div>
+      </div>
+      <div class="verdict-right">
+        <div class="direction-badge" id="directionBadge">BEKLE</div>
+        <div class="confidence-wrap">
+          <div class="conf-label">Güven <span id="confValue">0%</span></div>
+          <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Çoklu TF Matrisi -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Zaman Dilimi Matrisi</h2>
+        <span class="panel-hint">Her zaman dilimi bağımsız analiz edilir — uyumlu olanlar sinyal gücünü artırır</span>
+      </div>
+      <div class="table-wrap">
+        <table class="tf-matrix" id="tfMatrix">
+          <thead>
+            <tr>
+              <th>Zaman Dilimi</th><th>Trend</th><th>RSI</th><th>MACD</th><th>Stokastik</th>
+              <th>ADX</th><th>Hacim</th><th>Üst TF</th><th>Sinyal</th><th>Güven</th>
+            </tr>
+          </thead>
+          <tbody id="tfMatrixBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- İşlem Planı -->
+    <section class="panel plan-panel">
+      <div class="panel-head">
+        <h2>İşlem Planı</h2>
+        <span class="panel-hint" id="planTfLabel"></span>
+      </div>
+      <div id="planContent"></div>
+    </section>
+
+    <!-- Grafik -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Fiyat Grafiği</h2>
+        <div class="chart-tf-tabs" id="chartTfTabs">
+          <button data-tf="15m">15m</button>
+          <button data-tf="1h" class="active">1h</button>
+          <button data-tf="4h">4h</button>
+          <button data-tf="1d">1d</button>
+          <button data-tf="1w">1w</button>
+        </div>
+      </div>
+      <div class="chart-panes">
+        <div class="pane-label">FİYAT — EMA20 (mavi) / EMA50 (sarı)</div>
+        <div id="chart" class="chart-container"></div>
+        <div class="pane-label">HACİM</div>
+        <div id="chartVol" class="chart-container chart-small"></div>
+        <div class="pane-label">RSI (14) — 30/70 seviyeleri</div>
+        <div id="chartRsi" class="chart-container chart-small"></div>
+        <div class="pane-label">MACD (12,26,9)</div>
+        <div id="chartMacd" class="chart-container chart-small"></div>
+      </div>
+    </section>
+
+    <!-- Göstergeler + Analist Notları -->
+    <div class="two-col">
+      <section class="panel">
+        <div class="panel-head"><h2>Teknik Göstergeler</h2><span class="panel-hint" id="indTfLabel"></span></div>
+        <div class="indicators-grid" id="indicatorsGrid"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Analist Değerlendirmesi</h2></div>
+        <div class="reasons-list" id="reasonsList"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    VERİ: Binance Spot • MOTOR: RSI • MACD • EMA20/50/200 • ATR • Bollinger • Stokastik • ADX • Hacim • Destek/Direnç
+    <span class="footer-warn">Yatırım tavsiyesi değildir.</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
