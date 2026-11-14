@@ -622,6 +622,70 @@ const PRESETS = {
   custom: []
 };
 
+// Zaman dilimine göre otomatik ayarlar
+const TF_SETTINGS = {
+  '15m': {
+    params: { rsi: 7, macdF: 5, macdSlow: 13, macdSig: 4, stochK: 7, stochD: 3, adx: 7, emaF: 9, emaM: 21, emaS: 55, bbP: 10, bbM: 2, atr: 7, mom: 5 },
+    htf: '1h',
+    conditions: [
+      { indicator: 'aboveEmaM', cond: 'yes', value: '' },
+      { indicator: 'emaFastOverMid', cond: 'yes', value: '' },
+      { indicator: 'emaMidOverSlow', cond: 'yes', value: '' },
+      { indicator: 'htfBullish', cond: 'yes', value: '' },
+      { indicator: 'rsi', cond: 'between', value: '35,60' },
+      { indicator: 'macd', cond: 'gt', value: '0' },
+      { indicator: 'adx', cond: 'gt', value: '20' },
+      { indicator: 'volume', cond: 'gt', value: '1.2' },
+      { indicator: 'atrPct', cond: 'lt', value: '2' }
+    ]
+  },
+  '1h': {
+    params: { rsi: 14, macdF: 12, macdSlow: 26, macdSig: 9, stochK: 14, stochD: 3, adx: 14, emaF: 20, emaM: 50, emaS: 200, bbP: 20, bbM: 2, atr: 14, mom: 10 },
+    htf: '4h',
+    conditions: [
+      { indicator: 'aboveEmaM', cond: 'yes', value: '' },
+      { indicator: 'emaFastOverMid', cond: 'yes', value: '' },
+      { indicator: 'emaMidOverSlow', cond: 'yes', value: '' },
+      { indicator: 'htfBullish', cond: 'yes', value: '' },
+      { indicator: 'rsi', cond: 'between', value: '40,65' },
+      { indicator: 'macd', cond: 'gt', value: '0' },
+      { indicator: 'adx', cond: 'gt', value: '22' },
+      { indicator: 'volume', cond: 'gt', value: '1' },
+      { indicator: 'atrPct', cond: 'lt', value: '2.5' }
+    ]
+  },
+  '4h': {
+    params: { rsi: 14, macdF: 12, macdSlow: 26, macdSig: 9, stochK: 14, stochD: 3, adx: 14, emaF: 20, emaM: 50, emaS: 200, bbP: 20, bbM: 2, atr: 14, mom: 10 },
+    htf: '1d',
+    conditions: [
+      { indicator: 'aboveEmaM', cond: 'yes', value: '' },
+      { indicator: 'emaFastOverMid', cond: 'yes', value: '' },
+      { indicator: 'emaMidOverSlow', cond: 'yes', value: '' },
+      { indicator: 'htfBullish', cond: 'yes', value: '' },
+      { indicator: 'rsi', cond: 'between', value: '45,65' },
+      { indicator: 'macd', cond: 'gt', value: '0' },
+      { indicator: 'adx', cond: 'gt', value: '25' },
+      { indicator: 'volume', cond: 'gt', value: '0.8' },
+      { indicator: 'atrPct', cond: 'lt', value: '3' }
+    ]
+  },
+  '1d': {
+    params: { rsi: 21, macdF: 12, macdSlow: 26, macdSig: 9, stochK: 21, stochD: 5, adx: 21, emaF: 50, emaM: 200, emaS: 500, bbP: 20, bbM: 2, atr: 21, mom: 20 },
+    htf: '1w',
+    conditions: [
+      { indicator: 'aboveEmaM', cond: 'yes', value: '' },
+      { indicator: 'emaFastOverMid', cond: 'yes', value: '' },
+      { indicator: 'emaMidOverSlow', cond: 'yes', value: '' },
+      { indicator: 'htfBullish', cond: 'yes', value: '' },
+      { indicator: 'rsi', cond: 'between', value: '45,65' },
+      { indicator: 'macd', cond: 'gt', value: '0' },
+      { indicator: 'adx', cond: 'gt', value: '25' },
+      { indicator: 'volume', cond: 'gt', value: '0.8' },
+      { indicator: 'atrPct', cond: 'lt', value: '4' }
+    ]
+  }
+};
+
 let scrConditions = [{ indicator: 'rsi', cond: 'lt', value: '30' }];
 let lastScreenData = null;
 
@@ -729,6 +793,25 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
     scrConditions = PRESETS[btn.dataset.preset].map(c => ({ ...c }));
     renderScrConditions();
   });
+});
+
+// Zaman dilimi değişince otomatik ayarları uygula
+$('scrTf').addEventListener('change', () => {
+  const tf = $('scrTf').value;
+  const settings = TF_SETTINGS[tf];
+  if (settings) {
+    // Parametreleri uygula
+    Object.entries(settings.params).forEach(([k, v]) => {
+      const inp = document.querySelector(`#paramsGrid input[data-param="${k}"]`);
+      if (inp) inp.value = v;
+    });
+    // Üst TF'yi uygula
+    $('scrHtf').value = settings.htf;
+    // Koşulları uygula
+    scrConditions = settings.conditions.map(c => ({ ...c }));
+    renderScrConditions();
+    $('scrInfo').textContent = `${tf} için otomatik ayarlar yüklendi`;
+  }
 });
 
 $('scrBtn').addEventListener('click', runScreen);
