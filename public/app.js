@@ -683,6 +683,20 @@ const TF_SETTINGS = {
       { indicator: 'volume', cond: 'gt', value: '0.8' },
       { indicator: 'atrPct', cond: 'lt', value: '4' }
     ]
+  },
+  '1w': {
+    params: { rsi: 21, macdF: 12, macdSlow: 26, macdSig: 9, stochK: 21, stochD: 5, adx: 21, emaF: 50, emaM: 200, emaS: 500, bbP: 20, bbM: 2, atr: 21, mom: 20 },
+    htf: 'none',
+    conditions: [
+      { indicator: 'aboveEmaM', cond: 'yes', value: '' },
+      { indicator: 'emaFastOverMid', cond: 'yes', value: '' },
+      { indicator: 'emaMidOverSlow', cond: 'yes', value: '' },
+      { indicator: 'rsi', cond: 'between', value: '45,65' },
+      { indicator: 'macd', cond: 'gt', value: '0' },
+      { indicator: 'adx', cond: 'gt', value: '20' },
+      { indicator: 'volume', cond: 'gt', value: '0.5' },
+      { indicator: 'atrPct', cond: 'lt', value: '5' }
+    ]
   }
 };
 
