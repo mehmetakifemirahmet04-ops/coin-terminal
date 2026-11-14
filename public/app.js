@@ -608,6 +608,17 @@ const PRESETS = {
     { indicator: 'volume', cond: 'gt', value: '2' },
     { indicator: 'bbPos', cond: 'lt', value: '0.1' }
   ],
+  safe: [
+    { indicator: 'aboveEmaM', cond: 'yes', value: '' },
+    { indicator: 'emaFastOverMid', cond: 'yes', value: '' },
+    { indicator: 'emaMidOverSlow', cond: 'yes', value: '' },
+    { indicator: 'htfBullish', cond: 'yes', value: '' },
+    { indicator: 'rsi', cond: 'between', value: '45,65' },
+    { indicator: 'macd', cond: 'gt', value: '0' },
+    { indicator: 'adx', cond: 'gt', value: '25' },
+    { indicator: 'volume', cond: 'gt', value: '0.8' },
+    { indicator: 'atrPct', cond: 'lt', value: '3' }
+  ],
   custom: []
 };
 
