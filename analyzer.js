@@ -614,6 +614,20 @@ class CoinAnalyzer {
       const allLow = Math.min(...candles.map(c => c.low));
       const distFromHigh = (price - allHigh) / allHigh * 100;
 
+      // Basit S/R hesapla (pivot noktaları)
+      const pivots = [];
+      for (let i = 5; i < n - 5; i++) {
+        const c = candles[i];
+        const isHigh = c.high === Math.max(...candles.slice(i - 5, i + 6).map(x => x.high));
+        const isLow = c.low === Math.min(...candles.slice(i - 5, i + 6).map(x => x.low));
+        if (isHigh) pivots.push({ price: c.high, type: 'resistance' });
+        if (isLow) pivots.push({ price: c.low, type: 'support' });
+      }
+      const supports = pivots.filter(p => p.type === 'support' && p.price < price).sort((a, b) => b.price - a.price);
+      const resistances = pivots.filter(p => p.type === 'resistance' && p.price > price).sort((a, b) => a.price - b.price);
+      const nearestSupport = supports[0]?.price || price * 0.98;
+      const nearestResistance = resistances[0]?.price || price * 1.02;
+
       // Trend skoru (-100..+100)
       let score = 0;
       if (price > eMv) score += 25; else score -= 25;
@@ -638,6 +652,14 @@ class CoinAnalyzer {
           htfBearish = hp < he20 && he20 < he50;
         } catch (e) { /* htf opsiyonel */ }
       }
+
+      // Basit sinyal mantığı (screen için hızlı)
+      let signal = 'BEKLE';
+      if (score > 30 && rsiV < 70 && eFv > eMv) signal = 'AL';
+      else if (score < -30 && rsiV > 30 && eFv < eMv) signal = 'SAT';
+
+      // İşlem planı
+      const plan = this.buildPlan(signal === 'AL' ? 'LONG' : signal === 'SAT' ? 'SHORT' : 'BEKLE', price, atrV, nearestSupport, nearestResistance, resistances, supports, eFv, eMv);
 
       return {
         base,
@@ -684,7 +706,13 @@ class CoinAnalyzer {
         pctFromEmaM: +(((price - eMv) / eMv) * 100).toFixed(2),
         htfBullish,
         htfBearish,
-        htfPriceAboveEma50
+        htfPriceAboveEma50,
+        signal,
+        entry: plan.entry,
+        entryType: plan.entryType,
+        stopLoss: plan.stopLoss,
+        targets: plan.targets,
+        riskReward: plan.riskReward
       };
     } catch (e) {
       return null;

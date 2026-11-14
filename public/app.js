@@ -756,13 +756,22 @@ function renderScreen(data) {
   const wrap = $('scrResults');
   wrap.style.display = 'block';
   if (!data.matches.length) {
-    $('scrBody').innerHTML = `<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:24px">Eşleşen coin yok — koşulları gevşetmeyi dene</td></tr>`;
+    $('scrBody').innerHTML = `<tr><td colspan="18" style="text-align:center;color:var(--muted);padding:24px">Eşleşen coin yok — koşulları gevşetmeyi dene</td></tr>`;
     return;
   }
-  $('scrBody').innerHTML = data.matches.map(c => `<tr data-sym="${c.base}">
+  $('scrBody').innerHTML = data.matches.map(c => {
+    const signalClass = c.signal === 'AL' ? 'cell-signal-buy' : c.signal === 'SAT' ? 'cell-signal-sell' : 'cell-signal-wait';
+    const entryStr = c.entry ? `$${fmtPrice(c.entry)}` : '-';
+    const stopStr = c.stopLoss ? `$${fmtPrice(c.stopLoss)}` : '-';
+    const targetStr = c.targets && c.targets.length ? `$${fmtPrice(c.targets[0])}` : '-';
+    return `<tr data-sym="${c.base}">
     <td class="coin-cell">${c.base}</td>
     <td>$${fmtPrice(c.price)}</td>
     <td class="${(c.change24h || 0) >= 0 ? 'cell-good' : 'cell-bad'}">${c.change24h != null ? (c.change24h >= 0 ? '+' : '') + c.change24h.toFixed(1) + '%' : '-'}</td>
+    <td class="${signalClass}">${c.signal}</td>
+    <td>${entryStr}</td>
+    <td class="cell-stop">${stopStr}</td>
+    <td class="cell-target">${targetStr}</td>
     <td class="${scoreClass(c.score)}">${c.score > 0 ? '+' : ''}${c.score}</td>
     <td class="${c.rsi < 30 ? 'cell-good' : c.rsi > 70 ? 'cell-bad' : ''}">${c.rsi}</td>
     <td class="${c.macdHist > 0 ? 'cell-good' : 'cell-bad'}">${c.macdHist}</td>
@@ -774,7 +783,8 @@ function renderScreen(data) {
     <td class="${c.momPct > 0 ? 'cell-good' : 'cell-bad'}">${c.momPct > 0 ? '+' : ''}${c.momPct}%</td>
     <td class="${c.bbPos < 0.1 ? 'cell-good' : c.bbPos > 0.9 ? 'cell-bad' : ''}">${Math.round(c.bbPos * 100)}%</td>
     <td class="${c.pctFromEmaF > 0 ? 'cell-good' : 'cell-bad'}">${c.pctFromEmaF > 0 ? '+' : ''}${c.pctFromEmaF}%</td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
   $('scrBody').querySelectorAll('tr').forEach(tr => {
     tr.addEventListener('click', () => {
       coinSearch.value = tr.dataset.sym;
@@ -790,7 +800,7 @@ $('scrExport').addEventListener('click', () => {
     $('scrInfo').textContent = 'Önce tarama yap';
     return;
   }
-  const cols = ['base','price','change24h','score','rsi','macdHist','stochK','adx','plusDI','minusDI','volumeRatio','atrPct','momPct','bbPos','pctFromEmaF'];
+  const cols = ['base','price','change24h','signal','entry','stopLoss','targets','score','rsi','macdHist','stochK','adx','plusDI','minusDI','volumeRatio','atrPct','momPct','bbPos','pctFromEmaF'];
   const csv = [cols.join(','), ...lastScreenData.matches.map(c => cols.map(k => c[k] ?? '').join(','))].join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
