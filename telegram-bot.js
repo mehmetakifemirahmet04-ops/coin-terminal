@@ -361,12 +361,16 @@ async function checkAlerts(chatId) {
   const alert = userAlerts.get(chatId);
   if (!alert || !alert.enabled) return;
 
-  const timeframes = ['15m', '1h', '4h', '1d'];
+  // Sadece 4h timeframe'i kontrol et (rate limit için)
+  const timeframes = ['4h'];
 
   for (const coin of alert.coins) {
     try {
       const symbol = COIN_MAP[coin.toLowerCase()];
       if (!symbol) continue;
+
+      // Rate limit için bekleme
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       const results = [];
       for (const tf of timeframes) {
@@ -378,22 +382,22 @@ async function checkAlerts(chatId) {
         }
       }
 
-      // Tüm TF'lerde AL sinyali mi?
-      const allLong = results.length >= 3 && results.every(r => r.result.direction === 'LONG');
+      // 4h'de AL sinyali mi?
+      const isLong = results.length > 0 && results[0].result.direction === 'LONG';
 
-      if (allLong) {
-        const mainResult = results.find(r => r.tf === '4h')?.result || results[0].result;
+      if (isLong) {
+        const mainResult = results[0].result;
         const price = mainResult.price.toFixed(8);
-        const avgConf = Math.round(results.reduce((sum, r) => sum + r.result.confidence, 0) / results.length);
+        const conf = mainResult.confidence;
 
         const message = `
 🚨 *ALARM: ${coin.toUpperCase()}*
 
 💰 Fiyat: $${price}
-📊 Tüm zaman dilimlerinde AL sinyali!
-🎯 Güven: %${avgConf}
+📊 4h zaman diliminde AL sinyali!
+🎯 Güven: %${conf}
 
-/analiz_${coin.toLowerCase()} ile detaylı analizi gör.
+/${coin.toLowerCase()} ile detaylı analizi gör.
 `;
 
         await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
