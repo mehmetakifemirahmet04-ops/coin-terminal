@@ -1,6 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
 const analyzer = require('./analyzer');
-const { createCanvas } = require('canvas');
 const express = require('express');
 
 const token = '9200212432:AAEwwcpcrxrTUYadcrW2YWWwShUQn1vyYaM';
@@ -27,98 +26,7 @@ app.listen(PORT, () => {
   console.log(`HTTP server port ${PORT} üzerinde çalışıyor (Render için)`);
 });
 
-// Grafik çizme fonksiyonu
-async function drawChart(candles, ema20, ema50, ema200, supports, resistances, symbol) {
-  const width = 800;
-  const height = 400;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-
-  // Arka plan
-  ctx.fillStyle = '#131722';
-  ctx.fillRect(0, 0, width, height);
-
-  if (!candles || candles.length === 0) return canvas.toBuffer();
-
-  const closes = candles.map(c => c.close);
-  const highs = candles.map(c => c.high);
-  const lows = candles.map(c => c.low);
-  const maxPrice = Math.max(...highs, ...ema20, ...ema50, ...ema200);
-  const minPrice = Math.min(...lows, ...ema20, ...ema50, ...ema200);
-  const priceRange = maxPrice - minPrice;
-
-  const scaleY = (price) => height - 40 - ((price - minPrice) / priceRange) * (height - 80);
-  const scaleTime = (i) => 20 + (i / (candles.length - 1)) * (width - 40);
-
-  // Destek/Direnç çizgileri
-  ctx.lineWidth = 1;
-  supports.slice(0, 3).forEach(s => {
-    const y = scaleY(s.price || s);
-    ctx.strokeStyle = '#089981';
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(20, y);
-    ctx.lineTo(width - 20, y);
-    ctx.stroke();
-  });
-  resistances.slice(0, 3).forEach(r => {
-    const y = scaleY(r.price || r);
-    ctx.strokeStyle = '#f23645';
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(20, y);
-    ctx.lineTo(width - 20, y);
-    ctx.stroke();
-  });
-  ctx.setLineDash([]);
-
-  // EMA çizgileri
-  ctx.lineWidth = 1.5;
-  [ema20, ema50, ema200].forEach((ema, idx) => {
-    const colors = ['#2962ff', '#f0b90b', '#787b86'];
-    ctx.strokeStyle = colors[idx];
-    ctx.beginPath();
-    ema.forEach((val, i) => {
-      const x = scaleTime(i);
-      const y = scaleY(val);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  });
-
-  // Mumlar
-  const candleWidth = (width - 40) / candles.length * 0.7;
-  candles.forEach((c, i) => {
-    const x = scaleTime(i);
-    const openY = scaleY(c.open);
-    const closeY = scaleY(c.close);
-    const highY = scaleY(c.high);
-    const lowY = scaleY(c.low);
-
-    const isGreen = c.close >= c.open;
-    ctx.fillStyle = isGreen ? '#089981' : '#f23645';
-    ctx.strokeStyle = isGreen ? '#089981' : '#f23645';
-
-    // Wick
-    ctx.beginPath();
-    ctx.moveTo(x, highY);
-    ctx.lineTo(x, lowY);
-    ctx.stroke();
-
-    // Body
-    const bodyTop = Math.min(openY, closeY);
-    const bodyHeight = Math.abs(closeY - openY);
-    ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, Math.max(bodyHeight, 1));
-  });
-
-  // Başlık
-  ctx.fillStyle = '#d1d4dc';
-  ctx.font = 'bold 16px Arial';
-  ctx.fillText(symbol, 20, 25);
-
-  return canvas.toBuffer();
-}
+// (Grafik çizme fonksiyonu kaldırıldı - canvas Termux'ta çalışmıyor)
 
 // Coin eşleşmeleri (kısa isim -> tam sembol)
 const COIN_MAP = {
@@ -633,17 +541,7 @@ async function handleAnalyze(chatId, coin, specificTf = null) {
 
     await bot.sendMessage(chatId, header, { parse_mode: 'Markdown' });
 
-    // Grafik çiz ve gönder
-    try {
-      const chartCandles = mainResult.chart?.candles || [];
-      const ema20 = mainResult.chart?.ema20 || [];
-      const ema50 = mainResult.chart?.ema50 || [];
-      const ema200 = mainResult.chart?.ema200 || [];
-      const chartBuffer = await drawChart(chartCandles, ema20, ema50, ema200, mainResult.supports, mainResult.resistances, mainResult.symbol);
-      await bot.sendPhoto(chatId, chartBuffer, { caption: `📊 ${mainResult.symbol.toUpperCase()} Grafiği (4h)` });
-    } catch (e) {
-      console.error('Grafik hatası:', e);
-    }
+    // Grafik kaldırıldı (canvas Termux'ta çalışmıyor)
 
     let matrix = `
 ━━━━━━━━━━━━━━━━
