@@ -12,6 +12,9 @@ const MARKET = 'future'; // Vadeli piyasada analiz yap
 const userAlerts = new Map(); // chatId -> { coins: [], enabled: false, interval: 5 (minutes) }
 const alertIntervals = new Map(); // chatId -> intervalId
 
+// Kullanıcı state yönetimi (seçili coin, zaman dilimi)
+const userStates = new Map(); // chatId -> { selectedCoin, selectedTf }
+
 // Dummy HTTP server for Render port requirement
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -453,11 +456,21 @@ bot.on('callback_query', async (query) => {
     } else if (action.startsWith('analyze_')) {
       await bot.answerCallbackQuery(query.id);
       const coin = action.replace('analyze_', '').toLowerCase();
+      const state = userStates.get(chatId) || {};
+      state.selectedCoin = coin;
+      userStates.set(chatId, state);
       await handleAnalyze(chatId, coin);
     } else if (action.startsWith('tf_')) {
       await bot.answerCallbackQuery(query.id);
       const tf = action.replace('tf_', '');
-      await bot.sendMessage(chatId, `⏳ Zaman dilimi ${tf} için analiz yapılıyor... (bu özellik yakında)`);
+      const state = userStates.get(chatId) || {};
+
+      if (state.selectedCoin) {
+        await bot.sendMessage(chatId, `⏳ ${state.selectedCoin.toUpperCase()} ${tf} için analiz yapılıyor...`);
+        await handleAnalyze(chatId, state.selectedCoin, tf);
+      } else {
+        await bot.sendMessage(chatId, `⏳ Önce bir coin seçin (BTC, ETH, SOL...), sonra zaman dilimine basın.`);
+      }
     }
   } catch (error) {
     console.error('Callback hatası:', error);
@@ -528,7 +541,7 @@ async function handleList(chatId) {
   await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 }
 
-async function handleAnalyze(chatId, coin) {
+async function handleAnalyze(chatId, coin, specificTf = null) {
   const symbol = COIN_MAP[coin];
 
   if (!symbol) {
@@ -539,7 +552,7 @@ async function handleAnalyze(chatId, coin) {
   await bot.sendMessage(chatId, `⏳ ${symbol.toUpperCase()} analiz ediliyor...`);
 
   try {
-    const timeframes = ['15m', '1h', '4h', '1d', '1w'];
+    const timeframes = specificTf ? [specificTf] : ['15m', '1h', '4h', '1d', '1w'];
     const results = [];
 
     for (const tf of timeframes) {
