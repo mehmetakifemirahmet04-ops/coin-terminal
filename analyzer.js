@@ -1,5 +1,23 @@
 const ccxt = require('ccxt');
 
+// Cache mekanizması - API çağrılarını azaltır
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 dakika
+
+function getCache(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_TTL) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCache(key, data) {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
 // ============================================================
 // TEKNİK İNDİKATÖRLER
 // ============================================================
@@ -221,9 +239,19 @@ class CoinAnalyzer {
 
   async fetchCandles(symbol, timeframe, limit = 500, market = 'spot') {
     const pair = this.toPair(symbol, market);
+    const cacheKey = `${pair}_${timeframe}_${limit}_${market}`;
+
+    // Cache'den kontrol et
+    const cached = getCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     try {
       const ohlcv = await this.ex(market).fetchOHLCV(pair, timeframe, undefined, limit);
-      return ohlcv.map(c => ({ timestamp: c[0], open: c[1], high: c[2], low: c[3], close: c[4], volume: c[5] }));
+      const result = ohlcv.map(c => ({ timestamp: c[0], open: c[1], high: c[2], low: c[3], close: c[4], volume: c[5] }));
+      setCache(cacheKey, result);
+      return result;
     } catch (e) {
       throw new Error(`"${pair}" için veri alınamadı: ${e.message}`);
     }
@@ -232,6 +260,11 @@ class CoinAnalyzer {
   // Grafik için mum + EMA serileri
   async chartData(symbol, timeframe = '1h', limit = 300, market = 'spot') {
     const pair = this.toPair(symbol, market);
+    const cacheKey = `chart_${pair}_${timeframe}_${limit}_${market}`;
+
+    const cached = getCache(cacheKey);
+    if (cached) return cached;
+
     const ohlcv = await this.ex(market).fetchOHLCV(pair, timeframe, undefined, limit + 60);
     const candles = ohlcv.map(c => ({ timestamp: c[0], open: c[1], high: c[2], low: c[3], close: c[4], volume: c[5] }));
     const closes = candles.map(c => c.close);
@@ -242,7 +275,8 @@ class CoinAnalyzer {
     const off = candles.length - limit;
     const t = i => Math.floor(slice[i].timestamp / 1000);
     const series = (arr) => arr.slice(off).map((v, i) => v === null ? null : { time: t(i), value: v }).filter(Boolean);
-    return {
+
+    const result = {
       symbol: pair,
       timeframe,
       candles: slice.map(c => ({
@@ -258,9 +292,16 @@ class CoinAnalyzer {
       volume: slice.map(c => ({ time: Math.floor(c.timestamp / 1000), value: c.volume, color: c.close >= c.open ? 'rgba(8,153,129,.35)' : 'rgba(242,54,69,.35)' })),
       price: closes[closes.length - 1]
     };
+
+    setCache(cacheKey, result);
+    return result;
   }
 
   async analyze(symbol, timeframe = '1h', market = 'spot') {
+    const cacheKey = `analyze_${symbol}_${timeframe}_${market}`;
+    const cached = getCache(cacheKey);
+    if (cached) return cached;
+
     // Vadeli çift yoksa spot'a düş
     let m = market;
     let candles, htfCandles;
@@ -501,6 +542,10 @@ class CoinAnalyzer {
         ema50: e50.slice(-200).map((v, i) => ({ time: Math.floor(candles[n - 200 + i].timestamp / 1000), value: v }))
       }
     };
+
+    // Cache'e kaydet
+    setCache(cacheKey, result);
+    return result;
   }
 
   // Hafif trend taraması — çoklu coin tarayıcı için (2 TF: 4h + 1d)
