@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const analyzer = require('./analyzer');
 const { createCanvas } = require('canvas');
+const express = require('express');
 
 const token = '9200212432:AAEwwcpcrxrTUYadcrW2YWWwShUQn1vyYaM';
 const bot = new TelegramBot(token, { polling: true });
@@ -10,6 +11,18 @@ const MARKET = 'future'; // Vadeli piyasada analiz yap
 // Alarm sistemi
 const userAlerts = new Map(); // chatId -> { coins: [], enabled: false, interval: 5 (minutes) }
 const alertIntervals = new Map(); // chatId -> intervalId
+
+// Dummy HTTP server for Render port requirement
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+app.get('/', (req, res) => {
+  res.send('🤖 Coin Analiz Bot çalışıyor!');
+});
+
+app.listen(PORT, () => {
+  console.log(`HTTP server port ${PORT} üzerinde çalışıyor (Render için)`);
+});
 
 // Grafik çizme fonksiyonu
 async function drawChart(candles, ema20, ema50, ema200, supports, resistances, symbol) {
