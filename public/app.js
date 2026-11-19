@@ -1,4 +1,5 @@
 // ===== STATE =====
+const API_BASE = 'https://coin-terminal.onrender.com';
 let allCoins = [];
 let currentData = null;
 let chartSymbol = null;
@@ -18,7 +19,7 @@ const dropdown = $('coinDropdown');
 // ===== COİN LİSTESİ =====
 async function loadCoins() {
   try {
-    const res = await fetch(`/api/coins?market=${market}`);
+    const res = await fetch(`${API_BASE}/api/coins?market=${market}`);
     const json = await res.json();
     if (json.success) {
       allCoins = json.data;
@@ -93,7 +94,7 @@ async function runAnalysis(silent = false) {
   $('analyzeBtn').disabled = true;
 
   try {
-    const res = await fetch(`/api/analyze?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+    const res = await fetch(`${API_BASE}/api/analyze?symbol=${encodeURIComponent(symbol)}&market=${market}`);
     const json = await res.json();
     if (!json.success) throw new Error(json.message);
     currentData = json.data;
@@ -285,7 +286,7 @@ async function loadChart(tf) {
 
   const symbol = currentData.symbol.split('/')[0];
   try {
-    const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&timeframe=${tf}&market=${market}`);
+    const res = await fetch(`${API_BASE}/api/chart?symbol=${encodeURIComponent(symbol)}&timeframe=${tf}&market=${market}`);
     const json = await res.json();
     if (!json.success) throw new Error(json.message);
     drawChart(json.data);
@@ -423,7 +424,7 @@ function startLivePrice() {
 
   const tick = async () => {
     try {
-      const res = await fetch(`/api/price?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+      const res = await fetch(`${API_BASE}/api/price?symbol=${encodeURIComponent(symbol)}&market=${market}`);
       const json = await res.json();
       if (!json.success) return;
       const p = json.data.price;
@@ -448,7 +449,7 @@ function startLivePrice() {
 async function updateLiveCandle(symbol) {
   if (!candleSeries || !currentData) return;
   try {
-    const res = await fetch(`/api/candle?symbol=${encodeURIComponent(symbol)}&timeframe=${chartTf}&market=${market}`);
+    const res = await fetch(`${API_BASE}/api/candle?symbol=${encodeURIComponent(symbol)}&timeframe=${chartTf}&market=${market}`);
     const json = await res.json();
     if (json.success) candleSeries.update(json.data);
   } catch (e) { /* sessiz geç */ }
@@ -479,7 +480,7 @@ async function runScan() {
     $(id).innerHTML = '<div class="scan-loading">⏳ Analiz ediliyor...</div>';
   });
   try {
-    const res = await fetch(`/api/scan?market=${market}&limit=40`);
+    const res = await fetch(`${API_BASE}/api/scan?market=${market}&limit=40`);
     const json = await res.json();
     if (!json.success) throw new Error(json.message);
     renderScan(json.data);
@@ -843,7 +844,7 @@ async function runScreen() {
       conditions: JSON.stringify(scrConditions.filter(c => c.indicator)),
       params: JSON.stringify(collectParams())
     });
-    const res = await fetch('/api/screen?' + params);
+    const res = await fetch(`${API_BASE}/api/screen?` + params);
     const json = await res.json();
     if (!json.success) throw new Error(json.message);
     lastScreenData = json.data;
