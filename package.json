@@ -8,9 +8,12 @@
   },
   "type": "commonjs",
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "ccxt": "^4.1.66",
     "express": "^4.18.2",
-    "rss-parser": "^3.13.0",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "rss-parser": "^3.13.0"
   }
 }
