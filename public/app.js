@@ -1,5 +1,7 @@
 // ===== STATE =====
-const API_BASE = 'https://coin-terminal.onrender.com';
+// Local'de server.js çalışıyorsa relative URL, APK'da ise Render URL kullan
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = isLocal ? '' : 'https://coin-terminal.onrender.com';
 let allCoins = [];
 let currentData = null;
 let chartSymbol = null;
